@@ -2,6 +2,64 @@
 
 Production-grade Terraform module for deploying AWS Lambda functions with comprehensive support for packaging, layers, SnapStart, function URLs, event source mappings, canary deployments, and observability.
 
+## Architecture Diagram
+
+```mermaid
+flowchart TB
+    subgraph Triggers["Event Sources"]
+        APIGW["API Gateway /\nEventBridge / S3 / SNS"]
+        SQS["SQS Queue"]
+        KINESIS["Kinesis Stream"]
+        DDB["DynamoDB Stream"]
+        FURL["Function URL\n(HTTPS)"]
+    end
+
+    subgraph Function["Lambda Function"]
+        FN["Function Code\n(Zip / Container Image)"]
+        SNAP["SnapStart\n(Java Cold Start)"]
+        LAYERS["Lambda Layers"]
+        VPC["VPC Config\n(Private Subnets)"]
+        ENV["Environment Variables\n(KMS Encrypted)"]
+    end
+
+    subgraph Deploy["Deployment"]
+        ALIAS["Alias (live)"]
+        PROV["Provisioned\nConcurrency"]
+    end
+
+    subgraph Destinations["Async Destinations"]
+        SUCCESS["On Success\n(SNS / SQS / Lambda)"]
+        FAILURE["On Failure\n(SNS / SQS / DLQ)"]
+    end
+
+    subgraph Observability["Observability"]
+        CWLOGS["CloudWatch Logs\n(JSON / Text)"]
+        XRAY["X-Ray Tracing"]
+    end
+
+    APIGW --> FN
+    FURL --> FN
+    SQS --> FN
+    KINESIS --> FN
+    DDB --> FN
+    FN --> SNAP
+    FN --> LAYERS
+    FN --> VPC
+    FN --> ENV
+    FN --> ALIAS
+    ALIAS --> PROV
+    FN --> SUCCESS
+    FN --> FAILURE
+    FN --> CWLOGS
+    FN --> XRAY
+
+    style Triggers fill:#FF9900,color:#fff
+    style Function fill:#0078D4,color:#fff
+    style Deploy fill:#3F8624,color:#fff
+    style Destinations fill:#DD344C,color:#fff
+    style Observability fill:#8C4FFF,color:#fff
+```
+
 ## Architecture
 
 ```
