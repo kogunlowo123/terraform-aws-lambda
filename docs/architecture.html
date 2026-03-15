@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>terraform-aws-lambda | Architecture</title>
+<style>
+:root{--ink:#0b0c0b;--accent:#c8420a;--surface:#141514;--border:#2a2b2a;--text:#d4d4d4;--muted:#8a8a8a;--card:#1a1b1a;--green:#2ea043;--blue:#4493f8;--yellow:#d29922;--red:#f85149}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--ink);color:var(--text);font-family:'SF Mono','Cascadia Code','Fira Code',monospace;font-size:14px;line-height:1.7}
+a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
+.container{max-width:1200px;margin:0 auto;padding:2rem}
+header{border-bottom:2px solid var(--accent);padding-bottom:1.5rem;margin-bottom:2.5rem}
+header h1{font-size:1.8rem;color:#fff;letter-spacing:-0.5px}
+header .subtitle{color:var(--muted);margin-top:0.3rem;font-size:0.95rem}
+h2{font-size:1.3rem;color:var(--accent);margin:2.5rem 0 1rem;padding-bottom:0.4rem;border-bottom:1px solid var(--border)}
+h3{font-size:1rem;color:#fff;margin:1.5rem 0 0.5rem}
+.badge{display:inline-block;padding:2px 8px;border-radius:3px;font-size:0.75rem;font-weight:600;margin-right:0.4rem}
+.badge-green{background:rgba(46,160,67,0.15);color:var(--green);border:1px solid rgba(46,160,67,0.3)}
+.badge-blue{background:rgba(68,147,248,0.15);color:var(--blue);border:1px solid rgba(68,147,248,0.3)}
+.badge-yellow{background:rgba(210,153,34,0.15);color:var(--yellow);border:1px solid rgba(210,153,34,0.3)}
+.badge-red{background:rgba(248,81,73,0.15);color:var(--red);border:1px solid rgba(248,81,73,0.3)}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;margin:1rem 0}
+.card{background:var(--card);border:1px solid var(--border);border-radius:6px;padding:1.2rem}
+.card .label{font-size:0.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px}
+.card .value{font-size:1.4rem;color:#fff;margin-top:0.3rem;font-weight:700}
+.card .detail{font-size:0.8rem;color:var(--muted);margin-top:0.2rem}
+.arch-diagram{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:2rem;margin:1rem 0;overflow-x:auto}
+.flow-row{display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;justify-content:center;margin:0.5rem 0}
+.flow-box{background:var(--card);border:1px solid var(--border);border-radius:4px;padding:0.6rem 1rem;text-align:center;font-size:0.8rem;min-width:120px}
+.flow-box.primary{border-color:var(--accent);color:var(--accent)}
+.flow-box.green{border-color:var(--green);color:var(--green)}
+.flow-box.blue{border-color:var(--blue);color:var(--blue)}
+.flow-box.yellow{border-color:var(--yellow);color:var(--yellow)}
+.flow-box.red{border-color:var(--red);color:var(--red)}
+.flow-arrow{color:var(--muted);font-size:1.2rem}
+table{width:100%;border-collapse:collapse;margin:1rem 0;font-size:0.85rem}
+th,td{text-align:left;padding:0.5rem 0.8rem;border-bottom:1px solid var(--border)}
+th{color:var(--muted);font-weight:600;text-transform:uppercase;font-size:0.7rem;letter-spacing:1px}
+td code{background:var(--surface);padding:1px 5px;border-radius:3px;font-size:0.8rem}
+.checklist{list-style:none;padding:0}
+.checklist li{padding:0.3rem 0;padding-left:1.5rem;position:relative}
+.checklist li::before{content:"[ ]";position:absolute;left:0;color:var(--muted);font-size:0.8rem}
+.section-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:1rem}
+.info-block{background:var(--card);border:1px solid var(--border);border-radius:6px;padding:1.2rem;margin:0.5rem 0}
+.info-block h4{color:var(--accent);margin-bottom:0.5rem;font-size:0.9rem}
+.info-block ul{padding-left:1.2rem;color:var(--muted);font-size:0.85rem}
+.info-block li{margin:0.2rem 0}
+footer{margin-top:3rem;padding-top:1.5rem;border-top:1px solid var(--border);color:var(--muted);font-size:0.75rem;text-align:center}
+.exec-summary{background:var(--surface);border-left:3px solid var(--accent);padding:1.2rem 1.5rem;margin:1rem 0;border-radius:0 6px 6px 0;font-size:0.9rem;line-height:1.8}
+</style>
+</head>
+<body>
+<div class="container">
+<header>
+<h1>terraform-aws-lambda</h1>
+<div class="subtitle">Production-grade Lambda with packaging, SnapStart, function URLs, event sources, canary deployments, and observability</div>
+<div style="margin-top:0.8rem">
+<span class="badge badge-green">Terraform &ge; 1.5.0</span>
+<span class="badge badge-blue">AWS Provider &ge; 5.20.0</span>
+<span class="badge badge-yellow">arm64 Default</span>
+<span class="badge badge-red">X-Ray + KMS</span>
+</div>
+</header>
+
+<h2>Executive Summary</h2>
+<div class="exec-summary">
+This module deploys AWS Lambda functions with comprehensive support for three packaging modes (local Zip via archive_file, S3, and container images from ECR), SnapStart for Java cold start optimization, HTTPS function URLs with configurable CORS, event source mappings for SQS/DynamoDB Streams/Kinesis with filter criteria, async invocation destinations (success/failure), alias-based canary deployments with provisioned concurrency, VPC integration for private subnet deployment, X-Ray tracing, KMS-encrypted environment variables and logs, dead letter queues, and least-privilege IAM execution roles with conditional policies scoped to specific resource ARNs.
+</div>
+
+<h2>Overview</h2>
+<div class="cards">
+<div class="card"><div class="label">Resources Created</div><div class="value">9+</div><div class="detail">Function, URL, Alias, Concurrency, Event Sources, Destinations, Permissions, CW Logs, IAM</div></div>
+<div class="card"><div class="label">Input Variables</div><div class="value">28</div><div class="detail">function_name, runtime, handler, packaging, VPC, tracing, events, etc.</div></div>
+<div class="card"><div class="label">Outputs</div><div class="value">10</div><div class="detail">function_arn, invoke_arn, function_url, alias_arn, role_arn, log_group_arn, etc.</div></div>
+<div class="card"><div class="label">Architectures</div><div class="value">arm64</div><div class="detail">20% cheaper than x86_64 (also supported)</div></div>
+</div>
+
+<h2>Architecture Diagram</h2>
+<div class="arch-diagram">
+<div class="flow-row">
+<div class="flow-box yellow">API Gateway<br><small>EventBridge / S3 / SNS</small></div>
+<div class="flow-box yellow">Function URL<br><small>HTTPS</small></div>
+<div class="flow-box yellow">SQS Queue</div>
+<div class="flow-box yellow">Kinesis Stream</div>
+<div class="flow-box yellow">DynamoDB Stream</div>
+</div>
+<div class="flow-row"><span class="flow-arrow">&darr;</span></div>
+<div class="flow-row">
+<div class="flow-box primary">Lambda Function<br><small>Zip / Container Image</small></div>
+</div>
+<div class="flow-row"><span class="flow-arrow">&darr;</span></div>
+<div class="flow-row">
+<div class="flow-box blue">SnapStart<br><small>Java Cold Start</small></div>
+<div class="flow-box blue">Lambda Layers<br><small>Up to 5</small></div>
+<div class="flow-box green">VPC Config<br><small>Private Subnets</small></div>
+<div class="flow-box red">Env Variables<br><small>KMS Encrypted</small></div>
+</div>
+<div class="flow-row"><span class="flow-arrow">&darr;</span></div>
+<div class="flow-row">
+<div class="flow-box green">Alias (live)<br><small>Versioned</small></div>
+<div class="flow-box green">Provisioned<br>Concurrency</div>
+</div>
+<div class="flow-row"><span class="flow-arrow">&darr;</span></div>
+<div class="flow-row">
+<div class="flow-box yellow">On Success<br><small>SNS / SQS / Lambda</small></div>
+<div class="flow-box red">On Failure<br><small>SNS / SQS / DLQ</small></div>
+<div class="flow-box blue">CloudWatch Logs<br><small>JSON / Text</small></div>
+<div class="flow-box blue">X-Ray Tracing<br><small>Active</small></div>
+</div>
+</div>
+
+<h2>Component Breakdown</h2>
+<div class="section-grid">
+<div class="info-block">
+<h4>Lambda Function</h4>
+<ul>
+<li>Zip packaging: local source_path or S3 bucket/key</li>
+<li>Container packaging: ECR image_uri</li>
+<li>Runtimes: Python 3.8-3.13, Node.js 16-22, Java 8-21, .NET 6-8, Ruby, Go, custom</li>
+<li>arm64 default architecture (20% cost savings)</li>
+<li>Memory: 128 MB - 10,240 MB; Timeout: 1-900 seconds</li>
+</ul>
+</div>
+<div class="info-block">
+<h4>Event Sources &amp; Triggers</h4>
+<ul>
+<li>Event source mappings: SQS, DynamoDB Streams, Kinesis</li>
+<li>Filter criteria for event pattern matching</li>
+<li>Batch size, windowing, bisect on error</li>
+<li>Lambda permissions for API Gateway, EventBridge, S3, SNS</li>
+<li>Function URL with CORS and AWS_IAM or NONE auth</li>
+</ul>
+</div>
+<div class="info-block">
+<h4>Deployment &amp; Scaling</h4>
+<ul>
+<li>Alias-based deployments (e.g., "live")</li>
+<li>Provisioned concurrency for consistent latency</li>
+<li>SnapStart for Java cold start optimization</li>
+<li>Reserved concurrent executions for throttle control</li>
+<li>Auto-publish versions when alias or provisioned concurrency configured</li>
+</ul>
+</div>
+<div class="info-block">
+<h4>Observability &amp; Security</h4>
+<ul>
+<li>X-Ray tracing (Active or PassThrough mode)</li>
+<li>CloudWatch Logs with configurable retention (1-3653 days)</li>
+<li>JSON or Text log format</li>
+<li>KMS encryption for env vars and logs</li>
+<li>Dead letter queue (SNS or SQS)</li>
+<li>Least-privilege IAM with conditional policy attachments</li>
+</ul>
+</div>
+</div>
+
+<h2>Data Flow</h2>
+<div class="info-block">
+<ol style="padding-left:1.2rem;color:var(--muted);font-size:0.85rem">
+<li>Event sources (API Gateway, SQS, Kinesis, etc.) invoke the Lambda function</li>
+<li>Lambda permission resources authorize each trigger service</li>
+<li>Function URL provides direct HTTPS access with optional CORS</li>
+<li>Event source mappings poll SQS/Kinesis/DDB Streams and invoke in batches</li>
+<li>Function executes with environment variables decrypted from KMS at runtime</li>
+<li>Async invocations route success/failure to configured destinations</li>
+<li>Failed events can be sent to dead letter queue (SNS/SQS)</li>
+<li>X-Ray traces and CloudWatch Logs capture execution telemetry</li>
+</ol>
+</div>
+
+<h2>Security Controls</h2>
+<table>
+<tr><th>Control</th><th>Implementation</th><th>Default</th></tr>
+<tr><td>IAM Execution Role</td><td>Least-privilege with conditional policies</td><td>Auto-created</td></tr>
+<tr><td>Env Var Encryption</td><td>KMS customer-managed key</td><td><code>kms_key_arn=null</code> (optional)</td></tr>
+<tr><td>Log Encryption</td><td>KMS-encrypted CloudWatch Log Group</td><td>Same KMS key</td></tr>
+<tr><td>VPC Isolation</td><td>Private subnet + security group deployment</td><td><code>vpc_config=null</code></td></tr>
+<tr><td>Function URL Auth</td><td>AWS_IAM or NONE</td><td><code>AWS_IAM</code></td></tr>
+<tr><td>Dead Letter Queue</td><td>SNS or SQS for failed invocations</td><td><code>null</code></td></tr>
+<tr><td>Concurrency Limit</td><td>Reserved concurrent executions</td><td><code>-1</code> (unreserved)</td></tr>
+<tr><td>No Wildcard IAM</td><td>Event source permissions scoped to resource ARNs</td><td>Always enforced</td></tr>
+</table>
+
+<h2>Industry Adaptation</h2>
+<div class="section-grid">
+<div class="info-block">
+<h4>API Backend / Microservices</h4>
+<ul>
+<li>Function URL or API Gateway trigger</li>
+<li>Provisioned concurrency for low latency</li>
+<li>Alias-based canary deployments</li>
+<li>X-Ray tracing for distributed tracing</li>
+</ul>
+</div>
+<div class="info-block">
+<h4>Event Processing Pipeline</h4>
+<ul>
+<li>SQS/Kinesis event source mappings</li>
+<li>Filter criteria to reduce invocations</li>
+<li>Batch processing with bisect on error</li>
+<li>DLQ for poison message handling</li>
+</ul>
+</div>
+<div class="info-block">
+<h4>Enterprise Java (SnapStart)</h4>
+<ul>
+<li>SnapStart for sub-second cold starts</li>
+<li>Java 11/17/21 runtimes</li>
+<li>S3-based deployment packages</li>
+<li>Alias-based version management</li>
+</ul>
+</div>
+</div>
+
+<h2>Production Readiness Checklist</h2>
+<ul class="checklist">
+<li>Set appropriate <code>timeout</code> and <code>memory_size</code> for workload</li>
+<li>Use <code>arm64</code> architecture for cost savings</li>
+<li>Configure <code>kms_key_arn</code> for env var and log encryption</li>
+<li>Set <code>dead_letter_target_arn</code> for async invocations</li>
+<li>Use <code>reserved_concurrent_executions</code> to limit blast radius</li>
+<li>Enable <code>enable_xray_tracing = true</code></li>
+<li>Set <code>log_retention_days &ge; 90</code> for compliance</li>
+<li>Use <code>AWS_IAM</code> auth for function URLs in production</li>
+<li>Configure event source filter_criteria to reduce cost</li>
+<li>Deploy with alias + provisioned concurrency for production traffic</li>
+</ul>
+
+<h2>Configuration Reference</h2>
+<h3>Key Inputs</h3>
+<table>
+<tr><th>Variable</th><th>Type</th><th>Default</th><th>Description</th></tr>
+<tr><td><code>function_name</code></td><td>string</td><td>--</td><td>Unique function name (required)</td></tr>
+<tr><td><code>runtime</code></td><td>string</td><td><code>null</code></td><td>Runtime (python3.12, nodejs20.x, java21, etc.)</td></tr>
+<tr><td><code>handler</code></td><td>string</td><td><code>null</code></td><td>Entry point (e.g., index.handler)</td></tr>
+<tr><td><code>architectures</code></td><td>list(string)</td><td><code>["arm64"]</code></td><td>CPU architecture</td></tr>
+<tr><td><code>memory_size</code></td><td>number</td><td><code>128</code></td><td>MB (128-10240)</td></tr>
+<tr><td><code>timeout</code></td><td>number</td><td><code>30</code></td><td>Seconds (1-900)</td></tr>
+<tr><td><code>package_type</code></td><td>string</td><td><code>Zip</code></td><td>Zip or Image</td></tr>
+<tr><td><code>enable_function_url</code></td><td>bool</td><td><code>false</code></td><td>Create HTTPS endpoint</td></tr>
+<tr><td><code>enable_snapstart</code></td><td>bool</td><td><code>false</code></td><td>Java cold start optimization</td></tr>
+<tr><td><code>enable_xray_tracing</code></td><td>bool</td><td><code>true</code></td><td>X-Ray tracing</td></tr>
+<tr><td><code>event_source_mappings</code></td><td>list(object)</td><td><code>[]</code></td><td>SQS/Kinesis/DDB mappings</td></tr>
+<tr><td><code>provisioned_concurrency</code></td><td>number</td><td><code>0</code></td><td>Pre-warmed executions</td></tr>
+</table>
+
+<h3>Key Outputs</h3>
+<table>
+<tr><th>Output</th><th>Description</th></tr>
+<tr><td><code>function_arn</code></td><td>Lambda function ARN</td></tr>
+<tr><td><code>invoke_arn</code></td><td>ARN for API Gateway invocation</td></tr>
+<tr><td><code>function_url</code></td><td>HTTPS endpoint URL</td></tr>
+<tr><td><code>alias_arn</code></td><td>Alias ARN</td></tr>
+<tr><td><code>role_arn</code></td><td>Execution IAM role ARN</td></tr>
+<tr><td><code>log_group_name</code></td><td>CloudWatch Log Group name</td></tr>
+</table>
+
+<h2>Deployment</h2>
+<div class="info-block">
+<pre style="color:var(--text);font-size:0.85rem">
+# Initialize
+terraform init
+
+# Plan
+terraform plan -var-file="lambda.tfvars"
+
+# Apply
+terraform apply -var-file="lambda.tfvars"
+
+# Test invocation
+aws lambda invoke \
+  --function-name &lt;function_name&gt; \
+  --payload '{"key":"value"}' \
+  response.json
+
+# Check logs
+aws logs tail /aws/lambda/&lt;function_name&gt; --follow
+</pre>
+</div>
+
+<h2>Links &amp; References</h2>
+<div class="section-grid">
+<div class="info-block">
+<h4>AWS Documentation</h4>
+<ul>
+<li><a href="https://docs.aws.amazon.com/lambda/latest/dg/welcome.html">Lambda Developer Guide</a></li>
+<li><a href="https://docs.aws.amazon.com/lambda/latest/dg/lambda-urls.html">Function URLs</a></li>
+<li><a href="https://docs.aws.amazon.com/lambda/latest/dg/snapstart.html">SnapStart</a></li>
+<li><a href="https://docs.aws.amazon.com/lambda/latest/dg/invocation-eventsourcemapping.html">Event Source Mappings</a></li>
+<li><a href="https://docs.aws.amazon.com/lambda/latest/dg/invocation-async.html#invocation-async-destinations">Async Destinations</a></li>
+</ul>
+</div>
+<div class="info-block">
+<h4>Module Resources</h4>
+<ul>
+<li><a href="../examples/basic/">Example: Basic</a></li>
+<li><a href="../examples/advanced/">Example: Advanced</a></li>
+<li><a href="../examples/complete/">Example: Complete</a></li>
+</ul>
+</div>
+</div>
+
+<footer>
+terraform-aws-lambda | Architecture Documentation | Generated 2026-03-15 | MIT License
+</footer>
+</div>
+</body>
+</html>
