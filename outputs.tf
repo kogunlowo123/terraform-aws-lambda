@@ -1,7 +1,3 @@
-################################################################################
-# Lambda Function
-################################################################################
-
 output "function_name" {
   description = "Name of the Lambda function."
   value       = aws_lambda_function.this.function_name
@@ -22,27 +18,15 @@ output "qualified_arn" {
   value       = aws_lambda_function.this.qualified_arn
 }
 
-################################################################################
-# Function URL
-################################################################################
-
 output "function_url" {
   description = "The HTTP URL endpoint for the Lambda function URL."
   value       = try(aws_lambda_function_url.this[0].function_url, null)
 }
 
-################################################################################
-# Alias
-################################################################################
-
 output "alias_arn" {
   description = "ARN of the Lambda function alias."
   value       = try(aws_lambda_alias.this[0].arn, null)
 }
-
-################################################################################
-# IAM Role
-################################################################################
 
 output "role_arn" {
   description = "ARN of the Lambda execution IAM role."
@@ -53,10 +37,6 @@ output "role_name" {
   description = "Name of the Lambda execution IAM role."
   value       = aws_iam_role.lambda.name
 }
-
-################################################################################
-# CloudWatch Log Group
-################################################################################
 
 output "log_group_arn" {
   description = "ARN of the CloudWatch log group for the Lambda function."

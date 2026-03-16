@@ -1,7 +1,3 @@
-################################################################################
-# Function Configuration
-################################################################################
-
 variable "function_name" {
   description = "Unique name for the Lambda function."
   type        = string
@@ -19,7 +15,7 @@ variable "description" {
 }
 
 variable "runtime" {
-  description = "Runtime environment for the Lambda function (e.g., python3.12, nodejs20.x, java21). Required when package_type is Zip."
+  description = "Runtime environment for the Lambda function (e.g., python3.12, nodejs20.x, java21)."
   type        = string
   default     = null
 
@@ -33,13 +29,13 @@ variable "runtime" {
 }
 
 variable "handler" {
-  description = "Function entrypoint in the code (e.g., index.handler). Required when package_type is Zip."
+  description = "Function entrypoint in the code (e.g., index.handler)."
   type        = string
   default     = null
 }
 
 variable "architectures" {
-  description = "CPU architecture for the Lambda function. Valid values: x86_64, arm64."
+  description = "CPU architecture for the Lambda function (x86_64 or arm64)."
   type        = list(string)
   default     = ["arm64"]
 
@@ -50,7 +46,7 @@ variable "architectures" {
 }
 
 variable "memory_size" {
-  description = "Amount of memory in MB allocated to the Lambda function."
+  description = "Amount of memory in MB allocated to the Lambda function (128-10240)."
   type        = number
   default     = 128
 
@@ -61,7 +57,7 @@ variable "memory_size" {
 }
 
 variable "timeout" {
-  description = "Maximum execution time in seconds for the Lambda function."
+  description = "Maximum execution time in seconds for the Lambda function (1-900)."
   type        = number
   default     = 30
 
@@ -72,7 +68,7 @@ variable "timeout" {
 }
 
 variable "reserved_concurrent_executions" {
-  description = "Number of concurrent executions reserved for the function. Set to -1 for unreserved."
+  description = "Number of concurrent executions reserved for the function (-1 for unreserved)."
   type        = number
   default     = -1
 
@@ -82,12 +78,8 @@ variable "reserved_concurrent_executions" {
   }
 }
 
-################################################################################
-# Code Packaging
-################################################################################
-
 variable "source_path" {
-  description = "Local path to the Lambda function source code directory or file. Used with Zip package type."
+  description = "Local path to the Lambda function source code directory or file."
   type        = string
   default     = null
 }
@@ -117,7 +109,7 @@ variable "image_uri" {
 }
 
 variable "package_type" {
-  description = "Lambda deployment package type. Valid values: Zip, Image."
+  description = "Lambda deployment package type (Zip or Image)."
   type        = string
   default     = "Zip"
 
@@ -127,12 +119,8 @@ variable "package_type" {
   }
 }
 
-################################################################################
-# Layers and Environment
-################################################################################
-
 variable "layers" {
-  description = "List of Lambda layer ARNs to attach to the function."
+  description = "List of Lambda layer ARNs to attach to the function (max 5)."
   type        = list(string)
   default     = []
 
@@ -148,10 +136,6 @@ variable "environment_variables" {
   default     = {}
 }
 
-################################################################################
-# Function URL
-################################################################################
-
 variable "enable_function_url" {
   description = "Whether to create a Lambda function URL."
   type        = bool
@@ -159,7 +143,7 @@ variable "enable_function_url" {
 }
 
 variable "function_url_auth_type" {
-  description = "Authentication type for the function URL. Valid values: NONE, AWS_IAM."
+  description = "Authentication type for the function URL (NONE or AWS_IAM)."
   type        = string
   default     = "AWS_IAM"
 
@@ -182,32 +166,20 @@ variable "cors_config" {
   default = null
 }
 
-################################################################################
-# SnapStart
-################################################################################
-
 variable "enable_snapstart" {
-  description = "Whether to enable SnapStart for the Lambda function. Only supported for Java runtimes."
+  description = "Whether to enable SnapStart for the Lambda function (Java runtimes only)."
   type        = bool
   default     = false
 }
 
-################################################################################
-# VPC Configuration
-################################################################################
-
 variable "vpc_config" {
-  description = "VPC configuration for the Lambda function."
+  description = "VPC configuration with subnet_ids and security_group_ids for the Lambda function."
   type = object({
     subnet_ids         = list(string)
     security_group_ids = list(string)
   })
   default = null
 }
-
-################################################################################
-# Observability
-################################################################################
 
 variable "enable_xray_tracing" {
   description = "Whether to enable AWS X-Ray tracing for the Lambda function."
@@ -216,7 +188,7 @@ variable "enable_xray_tracing" {
 }
 
 variable "tracing_mode" {
-  description = "X-Ray tracing mode. Valid values: Active, PassThrough."
+  description = "X-Ray tracing mode (Active or PassThrough)."
   type        = string
   default     = "Active"
 
@@ -238,7 +210,7 @@ variable "log_retention_days" {
 }
 
 variable "log_format" {
-  description = "Log format for the Lambda function. Valid values: Text, JSON."
+  description = "Log format for the Lambda function (Text or JSON)."
   type        = string
   default     = "Text"
 
@@ -247,10 +219,6 @@ variable "log_format" {
     error_message = "Log format must be either 'Text' or 'JSON'."
   }
 }
-
-################################################################################
-# Event Source Mappings
-################################################################################
 
 variable "event_source_mappings" {
   description = "List of event source mapping configurations for SQS, DynamoDB Streams, Kinesis, etc."
@@ -273,10 +241,6 @@ variable "event_source_mappings" {
   default = []
 }
 
-################################################################################
-# Destinations
-################################################################################
-
 variable "on_success_arn" {
   description = "ARN of the destination resource for successful asynchronous invocations."
   type        = string
@@ -289,12 +253,8 @@ variable "on_failure_arn" {
   default     = null
 }
 
-################################################################################
-# Provisioned Concurrency and Alias
-################################################################################
-
 variable "provisioned_concurrency" {
-  description = "Number of provisioned concurrent executions. Set to 0 to disable."
+  description = "Number of provisioned concurrent executions (0 to disable)."
   type        = number
   default     = 0
 
@@ -316,10 +276,6 @@ variable "alias_description" {
   default     = ""
 }
 
-################################################################################
-# Security
-################################################################################
-
 variable "kms_key_arn" {
   description = "ARN of the KMS key used to encrypt environment variables and CloudWatch logs."
   type        = string
@@ -332,10 +288,6 @@ variable "dead_letter_target_arn" {
   default     = null
 }
 
-################################################################################
-# Permissions
-################################################################################
-
 variable "allowed_triggers" {
   description = "Map of allowed triggers to create Lambda permissions."
   type = map(object({
@@ -345,10 +297,6 @@ variable "allowed_triggers" {
   }))
   default = {}
 }
-
-################################################################################
-# Tags
-################################################################################
 
 variable "tags" {
   description = "Map of tags to apply to all resources created by this module."
