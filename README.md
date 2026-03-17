@@ -1,3 +1,9 @@
+![Terraform](https://img.shields.io/badge/Terraform-%3E%3D1.5-blueviolet?logo=terraform)
+![AWS](https://img.shields.io/badge/AWS-FF9900?logo=amazonaws&logoColor=white)
+![License](https://img.shields.io/badge/License-MIT-green)
+![CI](https://img.shields.io/github/actions/workflow/status/kogunlowo123/terraform-aws-lambda/terraform-ci.yml?label=CI)
+![GitHub release](https://img.shields.io/github/v/release/kogunlowo123/terraform-aws-lambda)
+
 # terraform-aws-lambda
 
 Production-grade Terraform module for deploying AWS Lambda functions with comprehensive support for packaging, layers, SnapStart, function URLs, event source mappings, canary deployments, and observability.
